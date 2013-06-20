@@ -1,42 +1,82 @@
-'''This module declares a class for a Thermocouple'''
+""" 2013 Paul Logston
+This module declares a Thermocouple class and a Temperature Profile
+that can mimic the output of an Adafruit Thermocouple Amplifier (MAX31855).
+"""
 
-import datetime
-import pytz
+"""TODO
+Format output strings to two digs after decimal place.
+Format tc output to only be fourths of a whole
+add more TemperatureProfile
 
-import thermal_profile as tpm
+Add ability to set TP from outside object
+
+"""
+
+
+import random
+
+class TemperatureProfile:
+    """A Temperature Profile class that produces a profile of different
+    shapes.
+    """
+
+    def constant(self, c):
+        """Return a constant function"""
+        c = float(c)
+        return lambda x: c + random.gauss(0, 0.01*c)
+
+    def linear(self, m, b):
+        """Return a linear function"""
+        return lambda x: m*x + b + random.gauss(0, 1)
+
 
 class Thermocouple:
-    """A Thermocouple class to model a real Thermocouple."""
+    """A Thermocouple class to model an Adafruit Thermocouple Amplifier (MAX31855)."""
 
     def __init__(self):
         """Build Thermocouple"""
-        self.init_datetime = datetime.datetime.now(pytz.utc) 
-        self.UNIX_EPOCH = datetime.datetime(1970, 1, 1, tzinfo=pytz.utc)
-        self.init_ts = (self.init_datetime-self.UNIX_EPOCH).total_seconds()
-        self.tp = tpm.ThermalProfile()
+        self.tgen = self.time_point_generator()
+        self.TPc = TemperatureProfile()
+        self.set_in_profile(self.TPc.constant(23))
+        self.set_tc_profile(self.TPc.linear(3,4))
 
-    def _current_timestamp(self):
-        """Return current UTC timestamp in seconds"""
-        return (datetime.datetime.now(pytz.utc)-self.UNIX_EPOCH).total_seconds()
+    def set_in_profile(self, fn):
+        """Set internal temperature profile to given function and reset."""
+        self.in_profile = fn
 
-    def _running_timestamp(self):
-        """Return time since initialization in seconds"""
-        return (datetime.datetime.now(pytz.utc)-self.init_datetime).total_seconds()
+    def get_in_profile(self):
+        """Return internal temperature profile function."""
+        return self.in_profile
+
+    def set_tc_profile(self, fn):
+        """Set thermocouple temperature profile to given function and reset."""
+        self.tc_profile = fn
+
+    def get_tc_profile(self):
+        """Return thermocouple temperature profile function."""
+        return self.tc_profile
 
     def read(self):
         """Return a formatted reading from the Thermocouple"""
-        internal = self._internal_func(self._running_timestamp())
-        thermocouple = self._thermocouple_func(self._running_timestamp())
-        return str(round(internal, 2)) + ',' + str(round(thermocouple, 2)) + '\n'
+        t = self.tgen.next()
+        return self._fmt_in_output(t) + ',' + self._fmt_tc_output(t) + '\n'
 
-    def _internal_func(self, timestamp):
-        """A function to simulate the internal temperature fluctuation of 
-        the thermocouple.
+    def _fmt_in_output(self, t):
+        """Return string value representing internal temperature"""
+        return str(round(self.in_profile(t), 2))
 
+    def _fmt_tc_output(self, t):
+        """Return string value representing temperature"""
+        return str(round(self.tc_profile(t), 2))
+
+    def time_point_generator(self):
+        """Return a time generator. Each time next is called on the generator,
+        it returns a unitless time incremented by one time step.
         """
-        return self.tp.root(timestamp)
+        t = 0
+        while True:
+            yield t
+            t += 1
 
-    def _thermocouple_func(self, timestamp):
-        """A function to simulate the thermocouple temperature fluctuation"""
-        return self.tp.root(timestamp, power=-1)
+
 

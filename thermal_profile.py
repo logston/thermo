@@ -1,13 +1,14 @@
-""" 
-2013 Paul Logston
-
-This class defines funcitons that generate temperatures along a thermal
-profile. 
-
+""" 2013 Paul Logston
+This class defines several temperature profiles that model the heating and 
+cooling of different substances
 """
 
-class ThermalProfile:
-    """A wrapper for several thermal profiles"""
 
-    def root(self, time, power=0.5):
-        return pow(time, power)
+class TemperatureProfile:
+    """A class that defines different temperature profiles"""
+    
+    def constant(c):
+        return lambda x: c
+
+    def linear(m, b):
+        return lambda x: m*x+b

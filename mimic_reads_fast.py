@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/local/bin/python
 
 '''This module automatically inserts fictitious temperature readings into a
 database in order to mimic a thermocouple taking periodic readings.'''
@@ -10,6 +10,7 @@ import time
 import random
 import os
 import math
+import csv
 
 def main():
     """This method controls insertion of fake data into a database."""
@@ -31,10 +32,18 @@ def main():
         sys.exit(1)
     conn.commit()
 
+    csvfile = open('out.csv', 'r')
+    csvreader = csv.reader(csvfile)
     tp = 0
+    date_time = datetime.datetime.utcnow()
     while True:
-        date_time = datetime.datetime.utcnow()
-        port_read = readline(tp) # Comes in form ddd.dd,ddd.dd\n
+        date_time = date_time + datetime.timedelta(seconds=1)
+        try:
+            port_read = readline(csvreader.next()) # Comes in form ddd.dd,ddd.dd\n
+        except:
+            print 'Could not read line/row ' + str(tp)
+            conn.close()
+            sys.exit(1)
         port_read = port_read.strip()
         port_read = port_read.split(',')
         t = (date_time, port_read[0], port_read[1])
@@ -48,17 +57,15 @@ def main():
                 i += 1
         print t
         try:
-            time.sleep(1)
+            pass
         except KeyboardInterrupt:
             conn.close()
             sys.exit(0)
         tp += 1
 
-def readline(tp):
-    """Return a fake data point from a fake thermocouple. 'internal,thermocouple\n'"""
-    internal = math.cos(tp/100) + random.uniform(-0.1,0.1) + 5 
-    thermocouple = math.sqrt(tp) + random.uniform(-1,1)
-    return str(round(internal, 2)) + ',' + str(round(thermocouple, 2)) + '\n'
+def readline(row):
+    thermocouple = row[1]
+    return str(0) + ',' + str(thermocouple) + '\n'
 
 if __name__ == '__main__':
     main()

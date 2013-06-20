@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/local/bin/python
 
 ''' This module creates a matplotlib scatter plot with thermocouple 
 data from a sqlite3 database. The module checks every second for updates
@@ -12,15 +12,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import datetime
 
-def main(file_name):
+def main():
     """Watch database and update plot appropriately"""
+    db_dir = 'data/'
 
-    if not os.path.exists(file_name):
-        print 'No file by the name ' + file_name + ' exists. Exiting.'
-        sys.exit(2)
-
+    file_list = os.listdir(db_dir)
+    file_name = file_list[-1]   # Get the most recent db file
     print file_name
-    conn = sqlite3.connect(file_name)
+    conn = sqlite3.connect(db_dir + file_name)
     c = conn.cursor()
 
     plt.ion()
@@ -41,7 +40,7 @@ def main(file_name):
             if first_pt_ts is True:
                 t_list.append(row)
                 first_pt_ts = str_to_datetime(row[0])
-                sql_ = '''SELECT * FROM readings ORDER BY datetime DESC LIMIT 10'''
+                sql_ = '''SELECT * FROM readings ORDER BY timestamp DESC LIMIT 10'''
                 first_pt = (0, row[1], row[2])
                 pts = np.array(first_pt)
                 print first_pt
@@ -59,7 +58,7 @@ def main(file_name):
         ax.scatter(x,z)
         plt.draw()
         try:
-            time.sleep(1)
+            pass
         except KeyboardInterrupt:
             plt.close('all')
             conn.close()
@@ -74,4 +73,4 @@ def str_to_datetime(datetime_string):
     return dt
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    main()
